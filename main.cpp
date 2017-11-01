@@ -16,22 +16,54 @@ int executeCommands(const char *const NAME) {
 	return 1;
 }
 
-int main() {
-	char buffer[2048];
-	while(1) {
+void handleCommands(char *commands) {
+	char *statements[1024] = {0};
+
+	int i = 0;
+	for(char *tok = strtok(commands, ";"); tok; tok = strtok(0, ";")) {
+		statements[i] = tok;
+		i++;
+		//printf("token split by ';': %s\n", tok);
+	}
+	
+	for(int i = 0; statements[i]; i++) {
+		executeCommands(statements[i]);
+	}
+	
+	/* TODO: perhaps in the future, this would be useful???
+	char *parsedTokens[1024] = {0};
+	for(int i = 0; statements[i]; i++) {
+		int j = 0;
+		for(char *tok = strtok(statements[i], " "); tok; tok = strtok(0, " ")) {
+			parsedTokens[j] = tok;
+		}
 		
-		printf("Type in a command to execute: ");
-		scanf("%s", buffer);
+		//call execute args here...
+		//execute commands...
+		//
+
+		for(int k = 0; parsedTokens[k]; k++) {
+			parsedTokens[k] = 0;
+		}
+	}
+	*/
+	
+}
+
+
+int main() {
+	char buffer[2048] = {0};
+
+	while(1) {
+		printf("$: ");
+		gets(buffer);
 
 		if(strcmp(buffer, "exit") == 0) {
-			printf("END\n");
+			printf("End of program.\n");
 			return 0;
 		}
-	
-		if(executeCommands(buffer)) {
-			printf("Commands successfully executed.\n");
-		} else {
-			printf("Commands failed\n");
-		}
+
+		handleCommands(buffer);
+
 	}
 }
