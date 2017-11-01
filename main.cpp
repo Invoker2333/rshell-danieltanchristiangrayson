@@ -27,7 +27,15 @@ void handleCommands(char *commands) {
 	}
 	
 	for(int i = 0; statements[i]; i++) {
+		printf("Executing %s...\n", statements[i]);
+
 		executeCommands(statements[i]);
+
+		// this is to handle comments that begin w/ '#'
+		for(int j = 0; statements[i][j]; j++) {
+			if(statements[i][j] == '#')
+				return;
+		}
 	}
 	
 	/* TODO: perhaps in the future, this would be useful???
