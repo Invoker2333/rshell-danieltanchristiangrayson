@@ -2,6 +2,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <iostream>
 
 // return 1 if successful
@@ -14,9 +15,9 @@ int executeCommands(char ** argv) {
 		return 0;
 	else if(pid == 0)
 		return execvp(*argv, argv) < 0? 0 : 1;
-	while(waitpid(pid , &status, 0) != pid)
+	while(wait(&status) != pid)
 		;
-	printf("Execution successful");
+	printf("Execution successful\n");
 	return 1;
 }
 
