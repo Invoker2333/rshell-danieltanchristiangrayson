@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <iostream>
+#include <cstdlib>
 
 // return 1 if successful
 // return 0 if NOT successful
@@ -44,10 +45,12 @@ void handleCommands(char *commands) {
 			printf("COMMAND_FAILED_EXECUTIONS...\n");
 		}
 		
+		//exit early if we have comments
 		for(int l = 0; statements[i][l]; l++) {
 			if(statements[i][l] == '#') return;
 		}
-
+		
+		//cleanup: set everything to NULL
 		for(int k = 0; parsedTokens[k]; k++) {
 			parsedTokens[k] = 0;
 		}
@@ -58,19 +61,21 @@ void handleCommands(char *commands) {
 
 int main() {
 	std::basic_string<char> buffer;
-	char *temp = 0;	
+	char *temp = 0;
 
 	while(1) {
 		printf("$: ");
 		std::getline(std::cin, buffer);
-		temp = (char *)buffer.c_str();		
+		temp = (char *)malloc((int)sizeof(char) * (int)buffer.length() + (int)sizeof(char));// + sizeof(char) to account for NULL-termination...
+		strcpy(temp, buffer.c_str());		
 
 		if(strcmp(temp, "exit") == 0) {
 			printf("End of program.\n");
+			free(temp);
 			return 0;
 		}
 		
 		handleCommands(temp);
-
+		free(temp);
 	}
 }
