@@ -1,18 +1,22 @@
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <iostream>
 
-int executeCommands(const char *const NAME) {
-	FILE *file = popen(NAME, "r");
-	char buffer[1024];
+// return 1 if successful
+// return 0 if NOT successful
+int executeCommands(char ** argv) {
+	pid_t pid;
+	int status;
 
-	if(file == 0)
+	if((pid = fork()) < 0)
 		return 0;
-
-	while(fgets(buffer, sizeof(buffer), file)) {
-		printf("%s", buffer);
-	}
-	
-	pclose(file);
+	else if(pid == 0)
+		return execvp(*argv, argv) < 0? 0 : 1;
+	while(waitpid(pid , &status, 0) != pid)
+		;
+	printf("Execution successful");
 	return 1;
 }
 
@@ -25,53 +29,47 @@ void handleCommands(char *commands) {
 		i++;
 		//printf("token split by ';': %s\n", tok);
 	}
-	
-	for(int i = 0; statements[i]; i++) {
-		printf("Executing %s...\n", statements[i]);
 
-		executeCommands(statements[i]);
-
-		// this is to handle comments that begin w/ '#'
-		for(int j = 0; statements[i][j]; j++) {
-			if(statements[i][j] == '#')
-				return;
-		}
-	}
-	
-	/* TODO: perhaps in the future, this would be useful???
 	char *parsedTokens[1024] = {0};
 	for(int i = 0; statements[i]; i++) {
 		int j = 0;
 		for(char *tok = strtok(statements[i], " "); tok; tok = strtok(0, " ")) {
 			parsedTokens[j] = tok;
+			j++;
 		}
 		
 		//call execute args here...
-		//execute commands...
-		//
+		if(!executeCommands(parsedTokens)) {
+			printf("COMMAND_FAILED_EXECUTIONS...\n");
+		}
+		
+		for(int l = 0; statements[i][l]; l++) {
+			if(statements[i][l] == '#') return;
+		}
 
 		for(int k = 0; parsedTokens[k]; k++) {
 			parsedTokens[k] = 0;
 		}
 	}
-	*/
 	
 }
 
 
 int main() {
-	char buffer[2048] = {0};
+	std::basic_string<char> buffer;
+	char *temp = 0;	
 
 	while(1) {
 		printf("$: ");
-		gets(buffer);
+		std::getline(std::cin, buffer);
+		temp = (char *)buffer.c_str();		
 
-		if(strcmp(buffer, "exit") == 0) {
+		if(strcmp(temp, "exit") == 0) {
 			printf("End of program.\n");
 			return 0;
 		}
-
-		handleCommands(buffer);
+		
+		handleCommands(temp);
 
 	}
 }
