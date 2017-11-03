@@ -87,6 +87,7 @@ int main() {
 		printf("$: ");
 		std::getline(std::cin, buffer);
 		if(std::cin.fail()) {
+			printf("End of program.\n");
 			return 0;
 		}
 
