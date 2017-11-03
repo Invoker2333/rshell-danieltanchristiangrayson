@@ -12,9 +12,11 @@ int executeCommands(char ** argv) {
 	int status;
 
 	if((pid = fork()) < 0)
-		return 0;
-	else if(pid == 0)
-		return execvp(*argv, argv) < 0? 0 : 1;
+		exit(1);
+	else if(pid == 0) {
+		execvp(*argv, argv);
+		exit(1);
+	}
 	while(wait(&status) != pid)
 		;
 	return 1;
