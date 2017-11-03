@@ -13,12 +13,12 @@ int executeCommands(char ** argv) {
 
 	if((pid = fork()) < 0) {
 		perror("forking child process failed\n");
-		exit(1);
+		return 0;
 	}
 	else if(pid == 0) {
 		if(execvp(*argv, argv) < 0) {
 			perror("exec failed\n");
-			exit(1);
+			return 0;
 		}
 	}
 	while(wait(&status) != pid)
@@ -64,23 +64,42 @@ void handleCommands(char *commands) {
 	}
 }
 
+void changeBuffer(std::basic_string<char> &buffer) {
+	for(std::size_t i = 2; i < buffer.length(); i++) {
+		if(buffer[i] == '&' && buffer[i - 1] == '&' && buffer[i - 2] != ' ') {
+			buffer = buffer.substr(0, i - 1) + " && " + buffer.substr(i + 1);
+			i+=2;
+		} else if(buffer[i] == '|' && buffer[i - 1] == '|' && buffer[i - 2] != ' ') {
+			buffer = buffer.substr(0, i - 1) + " || " + buffer.substr(i + 1);
+			i+=2;
+		} else if(buffer[i] == '#' && buffer[i - 1] != ' ') {
+			buffer = buffer.substr(0, i - 1) + + " #" + buffer.substr(i + 1);
+			i+=2;
+		}
+		
+	}
+}
+
+
 int main() {
 	std::basic_string<char> buffer;
-	char *temp = 0;
-
 	while(1) {
 		printf("$: ");
 		std::getline(std::cin, buffer);
-		temp = (char *)malloc((int)sizeof(char) * (int)buffer.length() + (int)sizeof(char));// + sizeof(char) to account for NULL-termination...
-		strcpy(temp, buffer.c_str());		
-
-		if(strcmp(temp, "exit") == 0) {
-			printf("End of program.\n");
-			free(temp);
+		if(std::cin.fail()) {
 			return 0;
 		}
+
+		printf("%s\n", buffer.c_str());
+		changeBuffer(buffer);
+		char *temp = (char *)buffer.c_str();
+		if(strcmp(temp, "exit") == 0) {
+			printf("End of program.\n");
+			return 0;
+		} else if(buffer.empty())
+			continue;
 		
 		handleCommands(temp);
-		free(temp);
+		buffer.clear();
 	}
 }
