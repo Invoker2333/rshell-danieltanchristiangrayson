@@ -64,23 +64,37 @@ void handleCommands(char *commands) {
 	}
 }
 
+void changeBuffer(std::basic_string<char> &buffer) {
+	for(std::size_t i = 2; i < buffer.length(); i++) {
+		if(buffer[i] == '&' && buffer[i - 1] == '&' && buffer[i - 2] != ' ') {
+			buffer = buffer.substr(0, i - 1) + " && " + buffer.substr(i + 1);
+			i+=2;
+		} else if(buffer[i] == '|' && buffer[i - 1] == '|' && buffer[i - 2] != ' ') {
+			buffer = buffer.substr(0, i - 1) + " || " + buffer.substr(i + 1);
+			i+=2;
+		} else if(buffer[i] == '#' && buffer[i - 1] != ' ') {
+			buffer = buffer.substr(0, i - 1) + + " #" + buffer.substr(i + 1);
+			i+=2;
+		}
+		
+	}
+}
+
+
 int main() {
 	std::basic_string<char> buffer;
-	char *temp = 0;
 
 	while(1) {
 		printf("$: ");
 		std::getline(std::cin, buffer);
-		temp = (char *)malloc((int)sizeof(char) * (int)buffer.length() + (int)sizeof(char));// + sizeof(char) to account for NULL-termination...
-		strcpy(temp, buffer.c_str());		
-
+		changeBuffer(buffer);
+		char *temp = (char *)buffer.c_str();
 		if(strcmp(temp, "exit") == 0) {
 			printf("End of program.\n");
-			free(temp);
 			return 0;
 		}
 		
 		handleCommands(temp);
-		free(temp);
+		buffer.clear();
 	}
 }
