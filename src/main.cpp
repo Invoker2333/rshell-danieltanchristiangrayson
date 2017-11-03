@@ -5,17 +5,21 @@
 #include <sys/wait.h>
 #include <iostream>
 #include <cstdlib>
-
+//
 // return 1 if successful, return 0 if NOT successful
 int executeCommands(char ** argv) {
 	pid_t pid;
 	int status;
 
-	if((pid = fork()) < 0)
+	if((pid = fork()) < 0) {
+		perror("forking child process failed\n");
 		exit(1);
+	}
 	else if(pid == 0) {
-		execvp(*argv, argv);
-		exit(1);
+		if(execvp(*argv, argv) < 0) {
+			perror("exec failed\n");
+			exit(1);
+		}
 	}
 	while(wait(&status) != pid)
 		;
