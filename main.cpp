@@ -6,8 +6,7 @@
 #include <iostream>
 #include <cstdlib>
 
-// return 1 if successful
-// return 0 if NOT successful
+// return 1 if successful, return 0 if NOT successful
 int executeCommands(char ** argv) {
 	pid_t pid;
 	int status;
@@ -18,46 +17,46 @@ int executeCommands(char ** argv) {
 		return execvp(*argv, argv) < 0? 0 : 1;
 	while(wait(&status) != pid)
 		;
-	printf("Execution successful\n");
 	return 1;
+}
+
+void recursion(int prev, char **parsedTokens, char *statements) {
+	if(statements == 0 || *statements == '#') {
+		return;
+	} else if(strcmp(statements, "&&") == 0) {
+		if(prev)	recursion(1, parsedTokens, strtok(0, " "));
+	} else if(strcmp(statements, "||") == 0) {
+		if(!prev) recursion(1, parsedTokens, strtok(0, " "));
+	} else {
+		int i; char *next = strtok(0, " "); *parsedTokens = statements;
+		for(i = 1; next && *next != '#' && strcmp(next, "&&") && strcmp(next, "||"); i++) {
+			parsedTokens[i] = next;
+			next = strtok(0, " ");
+		}
+
+		recursion(executeCommands(parsedTokens), parsedTokens + i + 1, next);
+	}
 }
 
 void handleCommands(char *commands) {
 	char *statements[1024] = {0};
-
+	char *parsedTokens[1024] = {0};
 	int i = 0;
+
 	for(char *tok = strtok(commands, ";"); tok; tok = strtok(0, ";")) {
 		statements[i] = tok;
 		i++;
-		//printf("token split by ';': %s\n", tok);
 	}
 
-	char *parsedTokens[1024] = {0};
 	for(int i = 0; statements[i]; i++) {
-		int j = 0;
-		for(char *tok = strtok(statements[i], " "); tok; tok = strtok(0, " ")) {
-			parsedTokens[j] = tok;
-			j++;
-		}
+		recursion(1, parsedTokens, strtok(statements[i], " "));
 		
-		//call execute args here...
-		if(!executeCommands(parsedTokens)) {
-			printf("COMMAND_FAILED_EXECUTIONS...\n");
-		}
-		
-		//exit early if we have comments
-		for(int l = 0; statements[i][l]; l++) {
-			if(statements[i][l] == '#') return;
-		}
-		
-		//cleanup: set everything to NULL
-		for(int k = 0; parsedTokens[k]; k++) {
-			parsedTokens[k] = 0;
+		//Cleanup: just in case...
+		for(int j = 0; parsedTokens[j]; j++) {
+			parsedTokens[j] = 0;
 		}
 	}
-	
 }
-
 
 int main() {
 	std::basic_string<char> buffer;
