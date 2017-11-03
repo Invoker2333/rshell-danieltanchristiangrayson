@@ -1,2 +1,3 @@
-#!/bin/bash
-read "ls -a"
+#!/bin/sh
+echo "ls -a;"|./a.out
+exit 0;

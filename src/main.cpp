@@ -83,16 +83,21 @@ void changeBuffer(std::basic_string<char> &buffer) {
 
 int main() {
 	std::basic_string<char> buffer;
-
 	while(1) {
 		printf("$: ");
 		std::getline(std::cin, buffer);
+		if(std::cin.fail()) {
+			return 0;
+		}
+
+		printf("%s\n", buffer.c_str());
 		changeBuffer(buffer);
 		char *temp = (char *)buffer.c_str();
 		if(strcmp(temp, "exit") == 0) {
 			printf("End of program.\n");
 			return 0;
-		}
+		} else if(buffer.empty())
+			continue;
 		
 		handleCommands(temp);
 		buffer.clear();
