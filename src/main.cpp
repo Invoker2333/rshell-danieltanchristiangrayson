@@ -13,15 +13,11 @@ int executeCommands(char ** argv) {
 
 	if((pid = fork()) < 0) {
 		perror("forking child process failed\n");
-//		exit(1);
-//		printf("SDLKSDJLFFDSFLKJFDJKLFDSLKJSDF\n");
 		return 0;
 	}
 	else if(pid == 0) {
 		if(execvp(*argv, argv) < 0) {
 			perror("exec failed\n");
-//			exit(1);
-//			printf("SDLJKFJ\n");
 			return 0;
 		}
 	}
