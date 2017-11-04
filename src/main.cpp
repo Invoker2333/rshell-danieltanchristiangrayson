@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/wait.h>
 #include <iostream>
 #include <cstdlib>
-////
+//////
 // return 1 if successful, return 0 if NOT successful
 int executeCommands(char ** argv) {
 	pid_t pid;

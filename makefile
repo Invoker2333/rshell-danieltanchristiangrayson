@@ -7,6 +7,10 @@ SOURCEDIR = src/
 SOURCES = $(wildcard $(SOURCEDIR)/*.cpp)
 OBJECTS = $(SOURCES:.cpp=.o)
 
+
+all: $(EXEC)
+
+
 $(EXEC): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $(EXEC)
 
