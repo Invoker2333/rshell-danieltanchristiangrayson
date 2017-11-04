@@ -1,7 +1,7 @@
 $(shell mkdir -p bin)
 CC = g++
 CC_FLAGS = -Wall -Werror --ansi -pedantic -std=c++11
-EXEC = bin/a.out
+EXEC = bin/main.out
 SOURCEDIR = src/
 SOURCES = $(wildcard $(SOURCEDIR)/*.cpp)
 OBJECTS = $(SOURCES:.cpp=.o)
