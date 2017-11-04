@@ -5,7 +5,7 @@
 #include <sys/wait.h>
 #include <iostream>
 #include <cstdlib>
-//
+////
 // return 1 if successful, return 0 if NOT successful
 int executeCommands(char ** argv) {
 	pid_t pid;
@@ -91,7 +91,7 @@ int main() {
 			return 0;
 		}
 
-		printf("%s\n", buffer.c_str());
+//		printf("%s\n", buffer.c_str());
 		changeBuffer(buffer);
 		char *temp = (char *)buffer.c_str();
 		if(strcmp(temp, "exit") == 0) {
