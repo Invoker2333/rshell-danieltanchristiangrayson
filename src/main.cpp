@@ -97,6 +97,36 @@ void changeBuffer(std::basic_string<char> &buffer) {
 	}
 }
 
+//function that returns 1 if true, 0 if false
+int hasCorrectSyntax(char *buffer) {
+	int brack = 0; int paren = 0;
+
+	for(int i = 0; 1; i++) {
+		switch(buffer[i]) {
+			
+		case '\0':
+			return brack == 0 && paren == 0;
+
+		case '[': 
+			brack++;
+			break;
+
+		case ']':
+			brack--;
+			break;
+
+		case '(':
+			paren++;
+			break;
+
+		case ')':
+			paren--;
+			break;
+		}
+	}
+}
+
+
 
 int main() {
 	std::basic_string<char> buffer;
@@ -109,15 +139,17 @@ int main() {
 		}
 
 //		printf("%s\n", buffer.c_str());
-		changeBuffer(buffer);
+//		changeBuffer(buffer);
 		char *temp = (char *)buffer.c_str();
-		if(strcmp(temp, "exit") == 0) {
-			printf("End of program.\n");
-			return 0;
-		} else if(buffer.empty())
-			continue;
+		if(hasCorrectSyntax(temp) == 1) printf("Correct!\n");
+		else printf("Incorrect...\n");
+//		if(strcmp(temp, "exit") == 0) {
+//			printf("End of program.\n");
+//			return 0;
+//		} else if(buffer.empty())
+//			continue;
 		
-		handleCommands(temp);
+//		handleCommands(temp);
 		buffer.clear();
 	}
 }
