@@ -25,9 +25,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <stdlib.h>
 
-
 int executeCommands(char ** argv);
-void recursion(int prev, char **parsedTokens, char *statements);
+//void recursion(int prev, char **parsedTokens, char *statements);
 void handleCommands(char *commands);
 void changeBuffer(std::basic_string<char> &buffer);
 int validBrackets(const char *const string);
@@ -120,6 +119,31 @@ void changeBuffer(std::basic_string<char> &buffer) {
 	}
 }
 
+void handleTokens(char **&tok) {
+	char *tokens[1024] = {0}; int i = 1023;
+	while(*tok) {
+		//printf("%s\n", *tok);
+		if(**tok == ')') {
+			tok--;
+			handleTokens(tok);
+		} else if(**tok == '(') {
+			tok--;
+			break;
+		} else {
+			tokens[i] = *tok;
+			tok--;
+			i--;
+		}
+	}
+
+	//i++ to account for off by one error...
+	//TODO: figure out how to transfer parenthesis into
+	//command handling...
+	for(i++; i < 1024; i++) {
+		printf("%s ", tokens[i]);
+	} printf("\n");
+}
+
 void handleCommands(char *commands) {
 	char *statements[1024] = {0};
 	char *parsedTokens[1024] = {0};
@@ -132,22 +156,21 @@ void handleCommands(char *commands) {
 
 	for(int i = 0; statements[i]; i++) {
 		if(validBrackets(statements[i])) {
-			printf("Statement #: %d\n",i);
-			int k = 0;
+			int k = 1;
 			for(char *tok = strtok(statements[i], " "); tok; tok = strtok(0, " ")) {
 				parsedTokens[k] = tok;
-				printf("Token #%d: %s\n", k, parsedTokens[k]);
 				k++;
 			}
 
-			//recursion(1, parsedTokens, strtok(statements[i], " "));
+			char **iter = parsedTokens + k - 1;
+			handleTokens(iter);
 			for(int j = 0; parsedTokens[j]; j++) parsedTokens[j] = 0;//Cleanup: just in case...
 		} else {
 			printf("Invalid parenthesis/brackets\n");
 		}
 	}
 }
-
+/*
 void recursion(int prev, char **parsedTokens, char *statements) {
 	if(statements == 0 || *statements == '#') {
 		return;
@@ -181,7 +204,7 @@ void recursion(int prev, char **parsedTokens, char *statements) {
 		recursion(executeCommands(parsedTokens), parsedTokens + i + 1, next);
 	}
 }
-
+*/
 int executeCommands(char ** argv) {
 	//pid_t pid;
 	//int status;
