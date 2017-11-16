@@ -1,16 +1,13 @@
 /*
 Copyright 2017, 2018 Christian Grayson & Daniel Tan
-
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
-
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
-
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -19,45 +16,112 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <sys/wait.h>
+//#include <sys/wait.h>
 #include <iostream>
 #include <cstdlib>
-//////
-// return 1 if successful, return 0 if NOT successful
-int executeCommands(char ** argv) {
-	pid_t pid;
-	int status;
+#include <vector>
+#include <sys/stat.h>
+#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-	if((pid = fork()) < 0) {
-		perror("forking child process failed\n");
-		return 0;
-	}
-	else if(pid == 0) {
-		if(execvp(*argv, argv) < 0) {
-			perror("exec failed\n");
+
+int executeCommands(char ** argv);
+void recursion(int prev, char **parsedTokens, char *statements);
+void handleCommands(char *commands);
+void changeBuffer(std::basic_string<char> &buffer);
+int validBrackets(const char *const string);
+int checkForFile(const char *const fileName, const char *const flags = "-e");
+void handleCommandsWithBrackets(int &num, char *commands);
+
+int main() {
+	std::basic_string<char> buffer;
+	while(1) {
+		printf("$: ");
+		std::getline(std::cin, buffer);
+		if(std::cin.fail() || buffer == "exit") {
+			printf("End of program.\n");
 			return 0;
 		}
-	}
-	while(wait(&status) != pid)
-		;
-	return 1;
-}
 
-void recursion(int prev, char **parsedTokens, char *statements) {
-	if(statements == 0 || *statements == '#') {
-		return;
-	} else if(strcmp(statements, "&&") == 0) {
-		if(prev)	recursion(1, parsedTokens, strtok(0, " "));
-	} else if(strcmp(statements, "||") == 0) {
-		if(!prev) recursion(1, parsedTokens, strtok(0, " "));
-	} else {
-		int i; char *next = strtok(0, " "); *parsedTokens = statements;
-		for(i = 1; next && *next != '#' && strcmp(next, "&&") && strcmp(next, "||"); i++) {
-			parsedTokens[i] = next;
-			next = strtok(0, " ");
+		changeBuffer(buffer);
+
+		char *temp = (char *)buffer.c_str();
+		if(buffer.empty()) continue;
+		if(!validBrackets(temp)) {
+			printf("Invalid brackets grammar.\n");
+			continue;
+		} else {
+			printf("Valid\n");
 		}
 
-		recursion(executeCommands(parsedTokens), parsedTokens + i + 1, next);
+		//handleCommands(temp);
+		buffer.clear();
+	}
+}
+
+//wrapper function for valid brackets.
+int validBrackets(const char *const str) {
+	int count = 0;
+
+	for(int i = 0; str[i]; i++) {
+
+		switch(str[i]) {
+
+		case '(': {
+			count++;
+			break;
+		}
+
+		case ')': {
+			count--;
+			break;
+		}
+
+		case '[': {
+			for(i++; str[i] != ']'; i++) {
+				if(str[i] == '[' || str[i] == '(' || str[i] == ')' || str[i] == '\0') return 0;
+			}
+			break;
+		}
+
+		case ']': {
+			return 0;
+		}
+
+		}
+	}
+
+	return count == 0;
+}
+
+void changeBuffer(std::basic_string<char> &buffer) {
+	//brute force...a bit ugly... TO DO: perhaps a better way to do this?!?!?
+	buffer = "  " + buffer;
+
+	for(std::size_t i = 2; i < buffer.length(); i++) {
+		if(buffer[i] == '#') {
+			buffer = buffer.substr(0, i);//cut off anything after '#'
+			return;
+		} else if(buffer[i] == '&' && buffer[i - 1] == '&' && buffer[i - 2] != ' ') {
+			buffer = buffer.substr(0, i - 1) + " && " + buffer.substr(i + 1);
+			i+=2;
+		} else if(buffer[i] == '|' && buffer[i - 1] == '|' && buffer[i - 2] != ' ') {
+			buffer = buffer.substr(0, i - 1) + " || " + buffer.substr(i + 1);
+			i+=2;
+		} else if(buffer[i] == '(' && buffer[i - 1] != ' ') {
+			buffer = buffer.substr(0, i) + " ( " + buffer.substr(i + 1);
+			i+=2;
+		} else if(buffer[i] == ')' && buffer[i - 1] != ' ') {
+			buffer = buffer.substr(0, i) + " ) " + buffer.substr(i + 1);
+			i+=2;
+		}  else if(buffer[i] == '[' && buffer[i - 1] != ' ') {
+			buffer = buffer.substr(0, i) + " [ " + buffer.substr(i + 1);
+			i+=2;
+		} else if(buffer[i] == ']' && buffer[i - 1] != ' ') {
+			buffer = buffer.substr(0, i) + " ] " + buffer.substr(i + 1);
+			i+=2;
+		}
 	}
 }
 
@@ -73,7 +137,6 @@ void handleCommands(char *commands) {
 
 	for(int i = 0; statements[i]; i++) {
 		recursion(1, parsedTokens, strtok(statements[i], " "));
-		
 		//Cleanup: just in case...
 		for(int j = 0; parsedTokens[j]; j++) {
 			parsedTokens[j] = 0;
@@ -81,75 +144,139 @@ void handleCommands(char *commands) {
 	}
 }
 
-void changeBuffer(std::basic_string<char> &buffer) {
-	for(std::size_t i = 2; i < buffer.length(); i++) {
-		if(buffer[i] == '&' && buffer[i - 1] == '&' && buffer[i - 2] != ' ') {
-			buffer = buffer.substr(0, i - 1) + " && " + buffer.substr(i + 1);
-			i+=2;
-		} else if(buffer[i] == '|' && buffer[i - 1] == '|' && buffer[i - 2] != ' ') {
-			buffer = buffer.substr(0, i - 1) + " || " + buffer.substr(i + 1);
-			i+=2;
-		} else if(buffer[i] == '#' && buffer[i - 1] != ' ') {
-			buffer = buffer.substr(0, i - 1) + + " #" + buffer.substr(i + 1);
-			i+=2;
+void recursion(int prev, char **parsedTokens, char *statements) {
+	if(statements == 0 || *statements == '#') {
+		return;
+	} else if(strcmp(statements, "&&") == 0) {
+		if(prev) recursion(1, parsedTokens, strtok(0, " "));
+		else {
+			char *next = strtok(0, " ");
+			while(next && *next != '#' && strcmp(next, "&&") && strcmp(next, "||")) {
+				next = strtok(0, " ");
+			}
+			printf("recursion &&: %d\n", prev);
+			recursion(prev, parsedTokens, strtok(0, " "));
 		}
-		
+	} else if(strcmp(statements, "||") == 0) {
+		if(!prev) recursion(1, parsedTokens, strtok(0, " "));
+		else {
+			char *next = strtok(0, " ");
+			while(next && *next != '#' && strcmp(next, "&&") && strcmp(next, "||")) {
+				next = strtok(0, " ");
+			}
+			printf("recursion ||: %d\n", prev);
+			recursion(prev, parsedTokens, strtok(0, " "));
+		}
+	} else {
+		int i; char *next = strtok(0, " "); *parsedTokens = statements;
+		for(i = 1; next && *next != '#' && strcmp(next, "&&") && strcmp(next, "||"); i++) {
+			parsedTokens[i] = next;
+			next = strtok(0, " ");
+		}
+
+		recursion(executeCommands(parsedTokens), parsedTokens + i + 1, next);
 	}
 }
 
-//function that returns 1 if true, 0 if false
-int hasCorrectSyntax(char *buffer) {
-	int brack = 0; int paren = 0;
+int executeCommands(char ** argv) {
+	//pid_t pid;
+	//int status;
 
-	for(int i = 0; 1; i++) {
-		switch(buffer[i]) {
-			
+	//test -e test/file/path && echo “path exists”
+	//					- or -
+	//$ [ -e test/file/path ] && echo “path exists”
+	printf("%s\n", *argv);
+
+	if(argv[0][0] == '[' || strcmp(*argv, "test") == 0) {
+		if(argv[1] == 0 || argv[1][0] == ']')
+			return 0;
+		else if(argv[2] == 0)
+			return checkForFile(argv[1]);
+		else if(argv[1][0] == '-' && isalpha(argv[1][1])) {
+			return checkForFile(argv[2], argv[1]);//[ -e test/file/path ]
+		} else {
+			return checkForFile(argv[1]);//[ test/file/path ]????
+		}
+	}
+	/*
+	if((pid = fork()) < 0) {
+		perror("forking child process failed\n");
+		return 0;
+	}
+	if(pid == 0) {
+		if(execvp(*argv, argv) < 0) {
+			perror("exec failed\n");
+			return 0;
+		}
+	}
+	while(wait(&status) != pid)
+		;*/
+	return 0;
+}
+
+void handleCommandsWithBrackets(int &num, char *str) {
+	//std::vector<char *> array;
+
+	while(1)
+		switch(str[num]) {
+
 		case '\0':
-			return brack == 0 && paren == 0;
+			return;
 
-		case '[': 
-			brack++;
-			break;
-
-		case ']':
-			brack--;
+		case '[':
+			num++;
+			handleCommandsWithBrackets(num, str);
+			//if(brackets(num, str) != ']') return '\0';
 			break;
 
 		case '(':
-			paren++;
+			num++;
+			handleCommandsWithBrackets(num, str);
+			//if(brackets(num, str) != ')') return '\0';
 			break;
 
 		case ')':
-			paren--;
-			break;
-		}
-	}
+			str[num] = '\0';
+			num++;
+			return;// ')';
+
+		case ']':
+			str[num] = '\0';
+			num++;
+			return;// ']';
+
+		default:
+			num++;
+
+		}//switch
 }
 
-
-
-int main() {
-	std::basic_string<char> buffer;
-	while(1) {
-		printf("$: ");
-		std::getline(std::cin, buffer);
-		if(std::cin.fail()) {
-			printf("End of program.\n");
+int checkForFile(const char *const fileName, const char *const flags) {
+	// -e => checks if file directory exists
+	// -f => checks if file directory exists & is regular
+	// -d => checks if file directory exists & is directory
+	struct stat sb;
+	if (stat(fileName, &sb) != 0) {
+		printf("file does not exist\n");
+		return 0;
+	} else if(strcmp(flags, "-f")) {
+		if((sb.st_mode & S_IFMT) == S_IFREG) {
+			printf("file exists and is regular\n");
+			return 1;
+		} else {
+			printf("file is not regular\n");
 			return 0;
 		}
-
-//		printf("%s\n", buffer.c_str());
-//		changeBuffer(buffer);
-		char *temp = (char *)buffer.c_str();
-		if(hasCorrectSyntax(temp) == 1) printf("Correct!\n");
-		else printf("Incorrect...\n");
-//		if(strcmp(temp, "exit") == 0) {
-//			printf("End of program.\n");
-//			return 0;
-//		} else if(buffer.empty())
-//			continue;
-		
-//		handleCommands(temp);
-		buffer.clear();
+	} else if(strcmp(flags, "-d")) {
+		if((sb.st_mode & S_IFMT) == S_IFDIR) {
+			printf("file exists and is a directory\n");
+			return 1;
+		} else {
+			printf("file is not a directory\n");
+			return 0;
+		}
+	} else {
+		printf("file exists\n");
+		return 1;
 	}
 }
