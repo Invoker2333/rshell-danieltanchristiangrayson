@@ -47,52 +47,47 @@ int main() {
 		changeBuffer(buffer);
 
 		char *temp = (char *)buffer.c_str();
-		if(buffer.empty()) continue;
-		if(!validBrackets(temp)) {
-			printf("Invalid brackets grammar.\n");
-			continue;
-		} else {
-			printf("Valid\n");
-		}
 
-		//handleCommands(temp);
+		handleCommands(temp);
 		buffer.clear();
 	}
 }
 
-//wrapper function for valid brackets.
-int validBrackets(const char *const str) {
-	int count = 0;
-
-	for(int i = 0; str[i]; i++) {
-
+int validBracketsRecursion(int &i, const char *const str) {
+	while(1)
 		switch(str[i]) {
 
-		case '(': {
-			count++;
-			break;
-		}
+		case '\0':
+			return '\1';
 
-		case ')': {
-			count--;
-			break;
-		}
-
-		case '[': {
+		case '[':{
 			for(i++; str[i] != ']'; i++) {
 				if(str[i] == '[' || str[i] == '(' || str[i] == ')' || str[i] == '\0') return 0;
-			}
+			} i++;
 			break;
 		}
 
-		case ']': {
+		case '(':
+			i++;
+			if(validBracketsRecursion(i, str) != ')') return 0;
+			break;
+
+		case ')':
+			i++;
+			return ')';
+
+		case ']':
 			return 0;
-		}
 
-		}
-	}
+		default:
+			i++;
 
-	return count == 0;
+		}//switch
+}
+
+int validBrackets(const char *const str) {
+	int i = 0; int ret = validBracketsRecursion(i, str);
+	return ret && ret != int(')');
 }
 
 void changeBuffer(std::basic_string<char> &buffer) {
@@ -109,7 +104,7 @@ void changeBuffer(std::basic_string<char> &buffer) {
 		} else if(buffer[i] == '|' && buffer[i - 1] == '|' && buffer[i - 2] != ' ') {
 			buffer = buffer.substr(0, i - 1) + " || " + buffer.substr(i + 1);
 			i+=2;
-		} else if(buffer[i] == '(' && buffer[i - 1] != ' ') {
+		} else if(buffer[i] == '(' && (buffer[i - 1] != ' ' || buffer[i + 1] != ' ')) {
 			buffer = buffer.substr(0, i) + " ( " + buffer.substr(i + 1);
 			i+=2;
 		} else if(buffer[i] == ')' && buffer[i - 1] != ' ') {
@@ -128,18 +123,27 @@ void changeBuffer(std::basic_string<char> &buffer) {
 void handleCommands(char *commands) {
 	char *statements[1024] = {0};
 	char *parsedTokens[1024] = {0};
-	int i = 0;
 
+	int i = 0;
 	for(char *tok = strtok(commands, ";"); tok; tok = strtok(0, ";")) {
 		statements[i] = tok;
 		i++;
 	}
 
 	for(int i = 0; statements[i]; i++) {
-		recursion(1, parsedTokens, strtok(statements[i], " "));
-		//Cleanup: just in case...
-		for(int j = 0; parsedTokens[j]; j++) {
-			parsedTokens[j] = 0;
+		if(validBrackets(statements[i])) {
+			printf("Statement #: %d\n",i);
+			int k = 0;
+			for(char *tok = strtok(statements[i], " "); tok; tok = strtok(0, " ")) {
+				parsedTokens[k] = tok;
+				printf("Token #%d: %s\n", k, parsedTokens[k]);
+				k++;
+			}
+
+			//recursion(1, parsedTokens, strtok(statements[i], " "));
+			for(int j = 0; parsedTokens[j]; j++) parsedTokens[j] = 0;//Cleanup: just in case...
+		} else {
+			printf("Invalid parenthesis/brackets\n");
 		}
 	}
 }
