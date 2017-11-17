@@ -25,14 +25,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <stdlib.h>
 
-enum EXE { UNINITIALIZED = ~0, FAIL, SUCCESS  };
-
 int executeCommands(char ** argv);
 void handleCommands(char *commands);
 void changeBuffer(std::basic_string<char> &buffer);
-int validBrackets(const char *const string);
 int checkForFile(const char *const fileName, const char *const flags = "-e");
-void handleCommandsWithBrackets(int &num, char *commands);
 
 int main() {
 	std::basic_string<char> buffer;
@@ -53,26 +49,29 @@ int main() {
 	}
 }
 
-int validBracketsRecursion(int &i, const char *const str) {
+int validBracketsRecursion(int &i, char *const str, char **&brackets) {
 	while(1)
 		switch(str[i]) {
 
 		case '\0':
 			return '\1';
 
-		case '[':{
+		case '[':
 			for(i++; str[i] != ']'; i++) {
 				if(str[i] == '[' || str[i] == '(' || str[i] == ')' || str[i] == '\0') return 0;
 			} i++;
 			break;
-		}
 
 		case '(':
+			*brackets = str + i;
+			brackets++;
 			i++;
-			if(validBracketsRecursion(i, str) != ')') return 0;
+			if(validBracketsRecursion(i, str, brackets) != ')') return 0;
 			break;
 
 		case ')':
+			*brackets = str + i;
+			brackets++;
 			i++;
 			return ')';
 
@@ -85,8 +84,8 @@ int validBracketsRecursion(int &i, const char *const str) {
 		}//switch
 }
 
-int validBrackets(const char *const str) {
-	int i = 0; int ret = validBracketsRecursion(i, str);
+int validBrackets(char *const str, char **brackets) {
+	int i = 0; int ret = validBracketsRecursion(i, str, brackets);
 	return ret && ret != int(')');
 }
 
@@ -126,14 +125,14 @@ int handleTokens(char **tokenArray) {
 
 			*tokenArray = 0;
 			int ret = handleTokens(tokenArray - 1);
-			printf("INSIDE-AND: %d", ret);
+			printf(" AND:%d ", ret);
 			return ret;
 
 		} else if(strcmp(*tokenArray, "||") == 0) {
 
 			*tokenArray = 0;
 			int ret = handleTokens(tokenArray - 1);
-			printf("INSIDE-OR: %d", ret);
+			printf(" OR:%d ", ret);
 			return !ret;
 
 		} else {
@@ -142,38 +141,77 @@ int handleTokens(char **tokenArray) {
 				tokenArray--;
 
 			int ret = handleTokens(tokenArray);
-			printf("%s -> %d", tokenArray[1], ret);
-			return 1;
+			printf("%s ", tokenArray[1]);
+			return ret;
 
 		}
 	} else {
-		printf("In the beginning...\n");
 		return 0;
 	}
 }
 
-void handleExpression(char **&tok) {
-	char *tokens[1024] = {0}; int i = 1022;
-	while(*tok) {
-		if(**tok == ')') {
-			tok--;
-			handleExpression(tok);
-		} else if(**tok == '(') {
-			tok--;
+//handles a strange edge case....
+void handleEdgeCase(char *str) {
+	for(int i = 0; str[i]; i++) {
+		if(str[i] == '(') {
+			str[i] = '\0';
+			char *tokens[32] = {0};
+			int j = 0;
+			for(char *tok = strtok(str, " "); tok; tok = strtok(0, " ")) {
+				tokens[j] = tok;
+			}
+			printf("\nEDGE CASE: \n");
+			for(j = 0; tokens[j]; j++) {
+				printf("%s ", tokens[j]);
+			}printf("\n");
+
+			str[i] = '(';
+		}
+	}
+}
+
+char *handleExpression(char *str, char **&brackets) {
+	char *ret = 0;
+	char *args[512] = {0}; int i = 0;
+
+	while(*brackets != 0) {
+		if(**brackets == '(') {
+			ret = *brackets + 1;
+			**brackets = '\0';
+			brackets++;
+			ret = handleExpression(ret, brackets);
+		} else if(**brackets == ')') {
+			ret = *brackets + 1;
+			**brackets = '\0';
+			brackets++;
 			break;
 		} else {
-			tokens[i] = *tok;
-			tok--;
-			i--;
+			printf("%s???\n", *brackets);
+			//brackets++;
 		}
 	}
 
-	handleTokens(tokens + 1022);
+	for(char *tok = strtok(str, " "); tok; tok = strtok(0, " ")) {
+		args[i] = tok;
+		i++;
+	}
+
+	//TODO: use the operator found in ret to get something done...
+	printf("\nFUNCTION: \n");
+	handleTokens(args + i - 1);
+	printf("LEFTOVERS: %s\n", ret);
+	//handleEdgeCase(ret);
+	//for(int i = 0; args[i]; i++) {
+	//	printf("%s ", args[i]);
+	//} printf("\n");
+
+	return ret;
 }
 
 void handleCommands(char *commands) {
 	char *statements[1024] = {0};
 	char *parsedTokens[1024] = {0};
+	char *parsedParens[1024] = {0};
 
 	int i = 0;
 	for(char *tok = strtok(commands, ";"); tok; tok = strtok(0, ";")) {
@@ -182,16 +220,13 @@ void handleCommands(char *commands) {
 	}
 
 	for(int i = 0; statements[i]; i++) {
-		if(validBrackets(statements[i])) {
-			int k = 1;
-			for(char *tok = strtok(statements[i], " "); tok; tok = strtok(0, " ")) {
-				parsedTokens[k] = tok;
-				k++;
-			}
+		if(validBrackets(statements[i], parsedParens)) {
+			char **pointer = parsedParens;
+			handleExpression(statements[i], pointer);
 
-			char **iter = parsedTokens + k - 1;
-			handleExpression(iter);
-			for(int j = 0; parsedTokens[j]; j++) parsedTokens[j] = 0;//Cleanup: just in case...
+
+			for(int j = 0; parsedTokens[j]; j++)
+				parsedTokens[j] = 0;//Cleanup: just in case...
 		} else {
 			printf("Invalid parenthesis/brackets\n");
 		}
@@ -199,7 +234,7 @@ void handleCommands(char *commands) {
 }
 /*
 void recursion(int prev, char **parsedTokens, char *statements) {
-	if(statements == 0 || *statements == '#') {
+	if(statements == 0) {
 		return;
 	} else if(strcmp(statements, "&&") == 0) {
 		if(prev) recursion(1, parsedTokens, strtok(0, " "));
@@ -265,43 +300,6 @@ int executeCommands(char ** argv) {
 	while(wait(&status) != pid)
 		;*/
 	return 0;
-}
-
-void handleCommandsWithBrackets(int &num, char *str) {
-	//std::vector<char *> array;
-
-	while(1)
-		switch(str[num]) {
-
-		case '\0':
-			return;
-
-		case '[':
-			num++;
-			handleCommandsWithBrackets(num, str);
-			//if(brackets(num, str) != ']') return '\0';
-			break;
-
-		case '(':
-			num++;
-			handleCommandsWithBrackets(num, str);
-			//if(brackets(num, str) != ')') return '\0';
-			break;
-
-		case ')':
-			str[num] = '\0';
-			num++;
-			return;// ')';
-
-		case ']':
-			str[num] = '\0';
-			num++;
-			return;// ']';
-
-		default:
-			num++;
-
-		}//switch
 }
 
 int checkForFile(const char *const fileName, const char *const flags) {
