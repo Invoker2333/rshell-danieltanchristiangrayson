@@ -155,27 +155,24 @@ int handleTokens(char **tokenArray) {
 	if(*tokenArray) {
 		
 		if(strcmp(*tokenArray, "&&") == 0) {
+			*tokenArray = 0;
 			int ret = handleTokens(tokenArray - 1);
 			printf(" AND ");
-			*tokenArray = 0;
 			return ret;
 
 		} else if(strcmp(*tokenArray, "||") == 0) {
+			*tokenArray = 0;
 			int ret = handleTokens(tokenArray - 1);
 			printf(" OR ");
-			*tokenArray = 0;
-			return ret;
+			return !ret;
 
 		} else {
 
 			while(*tokenArray && strcmp(*tokenArray, "&&") != 0 && strcmp(*tokenArray, "||") != 0)
 				tokenArray--;
 			int ret = handleTokens(tokenArray);
-			//printf("executing command...\n");
-			//for(int i = 1; tokenArray[i]; i++)
-			//	printf("%s", tokenArray[i]);
-			//printf("\n");
-			return ret? executeCommands(tokenArray) : 0;
+			//Off by one error...
+			return ret? executeCommands(tokenArray + 1) : 0;
 
 		}
 
@@ -225,18 +222,18 @@ char *handleExpression(char *const str, char **&brackets) {
 		args[i] = tok;
 		i++;
 	}
-
-	//for(i = 0; args[i]; i++) {
-	//	printf("%s ", args[i]);
-	//}  printf("\n");
+	
 	handleTokens(args + i - 1);
 
 	return 0;
 }
 
 int executeCommands(char ** argv) {
-	printf("EXECUTING COMMANDS...\n");
-	/*
+	printf("EXECUTING COMMAND: ");
+	for(int i = 0; argv[i]; i++) {
+		printf("%s ", argv[i]);
+	} printf("\n");
+	
 	if(argv[0][0] == '[' || strcmp(*argv, "test") == 0) {
 		if(argv[1] == 0 || argv[1][0] == ']')
 			return 0;
@@ -250,16 +247,14 @@ int executeCommands(char ** argv) {
 	} else if(strcmp(*argv, "exit") == 0) {
 		printf("End of Program\n");
 		exit(0);
-	}*/
+	}
 
 	pid_t pid = fork();
 	int status;
-	printf("pid: %d\n", pid);
 	if(pid < 0) {
 		perror("forking child process failed\n");
-		//exit(0);
+		exit(0);
 	} else if(pid == 0) {
-		printf("execvp\n");
 		if(execvp(*argv, argv) < 0) {
 			perror("exec failed\n");
 			exit(0);
@@ -267,7 +262,6 @@ int executeCommands(char ** argv) {
 	}
 	while(wait(&status) != pid)
 		;
-	printf("Stupid complier...\n");
 	return 1;
 }
 
@@ -299,4 +293,6 @@ int checkForFile(const char *const fileName, const char *const flags) {
 		printf("file exists\n");
 		return 1;
 	}
+	
+	return 1;
 }
