@@ -164,8 +164,7 @@ int handleTokens(char **tokenArray, int value) {
 
 		} else {
 			while(*tokenArray && strcmp(*tokenArray, "&&") != 0 && strcmp(*tokenArray, "||") != 0) {
-				tokenArray--;
-			}
+				tokenArray--;			}
 			int ret = handleTokens(tokenArray, value);
 			//Off by one error...
 			return ret? executeCommands(tokenArray + 1) : 0;
@@ -212,7 +211,6 @@ char *handleExpression(char *const str, char **&brackets) {
 	}
 	
 	int prev = handleTokens(args + i - 1);
-	printf("LEFT OVER: %s\n", ret);
 	if(ret != 0)
 		handleEdgeCase(ret, prev);
 
