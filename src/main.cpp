@@ -19,19 +19,26 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/wait.h>
 #include <iostream>
 #include <cstdlib>
-//#include <vector>
 #include <sys/stat.h>
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-int executeCommands(char ** argv);
-void handleCommands(char *commands);
+int validBracketsRecursion(int &i, char *const str, char **&brackets);
+int validBrackets(char *const str, char **brackets);
 void changeBuffer(std::basic_string<char> &buffer);
+int handleTokens(char **tokenArray);
+void handleEdgeCase(char *str);
+int executeCommands(char ** argv);
 int checkForFile(const char *const fileName, const char *const flags = "-e");
+char *handleExpression(char *const str, char **&brackets);
+int executeCommands(char ** argv);
 
-int main() {
+int main(int , char *[]) {
 	std::basic_string<char> buffer;
+	char *statements[64] = {0};
+	char *parsedParens[64] = {0};
+	
 	while(1) {
 		printf("$: ");
 		std::getline(std::cin, buffer);
@@ -42,10 +49,33 @@ int main() {
 
 		changeBuffer(buffer);
 
-		char *temp = (char *)buffer.c_str();
-
-		handleCommands(temp);
+		char *commands = (char *)malloc(sizeof(char) * (int)(buffer.length() + 1));
+		strcpy(commands, buffer.c_str());
+		
+		int i = 0;
+		for(char *tok = strtok(commands, ";"); tok; tok = strtok(0, ";")) {
+			statements[i] = tok;
+			i++;
+		}
+		
+		for(int i = 0; statements[i]; i++) {
+			if(validBrackets(statements[i], parsedParens)) {
+				char **ptr = parsedParens;
+				handleExpression(statements[i], ptr);
+			} else {
+				printf("Invalid parenthesis/brackets\n");
+			}
+		}
+		
+		for(int i = 0; statements[i]; i++)
+			statements[i] = 0;//Cleanup
+			
+		for(int i = 0; parsedParens[i]; i++)
+			parsedParens[i] = 0;//Cleanup
+		
+		free(commands);//Cleanup
 		buffer.clear();
+		
 	}
 }
 
@@ -95,7 +125,7 @@ void changeBuffer(std::basic_string<char> &buffer) {
 
 	for(std::size_t i = 2; i < buffer.length(); i++) {
 		if(buffer[i] == '#') {
-			buffer = buffer.substr(0, i);//cut off anything after '#'
+			buffer = buffer.substr(2, i);//cut off anything after '#'
 			return;
 		} else if(buffer[i] == '&' && buffer[i - 1] == '&' && buffer[i - 2] != ' ') {
 			buffer = buffer.substr(0, i - 1) + " && " + buffer.substr(i + 1);
@@ -117,35 +147,41 @@ void changeBuffer(std::basic_string<char> &buffer) {
 			i+=2;
 		}
 	}
+	
+	buffer = buffer.substr(2);
 }
 
-int handleTokens(char **tokenArray) {
-	printf("%p", *tokenArray);
+int handleTokens(char **tokenArray) {	
 	if(*tokenArray) {
+		
 		if(strcmp(*tokenArray, "&&") == 0) {
-
-			*tokenArray = 0;
 			int ret = handleTokens(tokenArray - 1);
+			printf(" AND ");
+			*tokenArray = 0;
 			return ret;
 
 		} else if(strcmp(*tokenArray, "||") == 0) {
-
-			*tokenArray = 0;
 			int ret = handleTokens(tokenArray - 1);
-			return !ret;
+			printf(" OR ");
+			*tokenArray = 0;
+			return ret;
 
 		} else {
 
-			while(*tokenArray && strcmp(*tokenArray, "&&") && strcmp(*tokenArray, "||"))
+			while(*tokenArray && strcmp(*tokenArray, "&&") != 0 && strcmp(*tokenArray, "||") != 0)
 				tokenArray--;
-
 			int ret = handleTokens(tokenArray);
+			//printf("executing command...\n");
+			//for(int i = 1; tokenArray[i]; i++)
+			//	printf("%s", tokenArray[i]);
+			//printf("\n");
 			return ret? executeCommands(tokenArray) : 0;
 
 		}
-	} else {
-		return 1;
+
 	}
+	
+	return 1;
 }
 
 //handles a strange edge case....
@@ -168,61 +204,39 @@ void handleEdgeCase(char *str) {
 	}
 }
 
-char *handleExpression(char *str, char **const brackets, int &index) {
-	char *ret = 0;
-	char *args[512] = {0}; int i = 0;
+char *handleExpression(char *const str, char **&brackets) {
+	char *ret = 0; char *args[64] = {0}; int i = 1;
 
-	while(brackets != 0 && brackets[index] != 0) {
-		if(brackets[index][0] == '(') {
-			ret = *(brackets + index + 1);
-			brackets[index][0] = '\0';
-			index++;
-			ret = handleExpression(ret, brackets, index);
-			index++;
-		} else if(brackets[index][0] == ')') {
-			ret = *(brackets + index + 1);
-			brackets[index][0] = '\0';
-			index++;
+	while(*brackets != 0) {
+		if(**brackets == '(') {
+			ret = *brackets + 1;
+			**brackets = '\0';
+			brackets++;
+			ret = handleExpression(ret, brackets);
+		} else if(**brackets == ')') {
+			ret = *brackets + 1;
+			**brackets = '\0';
+			brackets++;
 			break;
 		}
 	}
-
+	
 	for(char *tok = strtok(str, " "); tok; tok = strtok(0, " ")) {
 		args[i] = tok;
 		i++;
 	}
 
+	//for(i = 0; args[i]; i++) {
+	//	printf("%s ", args[i]);
+	//}  printf("\n");
 	handleTokens(args + i - 1);
 
-	return ret;
-}
-
-void handleCommands(char *commands) {
-	char *statements[1024] = {0};
-	char *parsedTokens[1024] = {0};
-	char *parsedParens[1024] = {0};
-
-	int i = 0;
-	for(char *tok = strtok(commands, ";"); tok; tok = strtok(0, ";")) {
-		statements[i] = tok;
-		i++;
-	}
-
-	for(int i = 0; statements[i]; i++) {
-		if(validBrackets(statements[i], parsedParens)) {
-			int index = 0;
-			handleExpression(statements[i], parsedParens, index);
-
-
-			for(int j = 0; parsedTokens[j]; j++)
-				parsedTokens[j] = 0;//Cleanup: just in case...
-		} else {
-			printf("Invalid parenthesis/brackets\n");
-		}
-	}
+	return 0;
 }
 
 int executeCommands(char ** argv) {
+	printf("EXECUTING COMMANDS...\n");
+	/*
 	if(argv[0][0] == '[' || strcmp(*argv, "test") == 0) {
 		if(argv[1] == 0 || argv[1][0] == ']')
 			return 0;
@@ -236,15 +250,16 @@ int executeCommands(char ** argv) {
 	} else if(strcmp(*argv, "exit") == 0) {
 		printf("End of Program\n");
 		exit(0);
-	}
+	}*/
 
-	pid_t pid;
+	pid_t pid = fork();
 	int status;
-	if((pid = fork()) < 0) {
+	printf("pid: %d\n", pid);
+	if(pid < 0) {
 		perror("forking child process failed\n");
-		exit(0);
-	}
-	if(pid == 0) {
+		//exit(0);
+	} else if(pid == 0) {
+		printf("execvp\n");
 		if(execvp(*argv, argv) < 0) {
 			perror("exec failed\n");
 			exit(0);
@@ -252,7 +267,8 @@ int executeCommands(char ** argv) {
 	}
 	while(wait(&status) != pid)
 		;
-	return 0;
+	printf("Stupid complier...\n");
+	return 1;
 }
 
 int checkForFile(const char *const fileName, const char *const flags) {
