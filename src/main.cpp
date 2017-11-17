@@ -25,8 +25,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <stdlib.h>
 
+enum EXE { UNINITIALIZED = ~0, FAIL, SUCCESS  };
+
 int executeCommands(char ** argv);
-//void recursion(int prev, char **parsedTokens, char *statements);
 void handleCommands(char *commands);
 void changeBuffer(std::basic_string<char> &buffer);
 int validBrackets(const char *const string);
@@ -119,13 +120,44 @@ void changeBuffer(std::basic_string<char> &buffer) {
 	}
 }
 
-void handleTokens(char **&tok) {
-	char *tokens[1024] = {0}; int i = 1023;
+int handleTokens(char **tokenArray) {
+	if(*tokenArray) {
+		if(strcmp(*tokenArray, "&&") == 0) {
+
+			*tokenArray = 0;
+			int ret = handleTokens(tokenArray - 1);
+			printf("INSIDE-AND: %d", ret);
+			return ret;
+
+		} else if(strcmp(*tokenArray, "||") == 0) {
+
+			*tokenArray = 0;
+			int ret = handleTokens(tokenArray - 1);
+			printf("INSIDE-OR: %d", ret);
+			return !ret;
+
+		} else {
+
+			while(*tokenArray && strcmp(*tokenArray, "&&") && strcmp(*tokenArray, "||"))
+				tokenArray--;
+
+			int ret = handleTokens(tokenArray);
+			printf("%s -> %d", tokenArray[1], ret);
+			return 1;
+
+		}
+	} else {
+		printf("In the beginning...\n");
+		return 0;
+	}
+}
+
+void handleExpression(char **&tok) {
+	char *tokens[1024] = {0}; int i = 1022;
 	while(*tok) {
-		//printf("%s\n", *tok);
 		if(**tok == ')') {
 			tok--;
-			handleTokens(tok);
+			handleExpression(tok);
 		} else if(**tok == '(') {
 			tok--;
 			break;
@@ -136,12 +168,7 @@ void handleTokens(char **&tok) {
 		}
 	}
 
-	//i++ to account for off by one error...
-	//TODO: figure out how to transfer parenthesis into
-	//command handling...
-	for(i++; i < 1024; i++) {
-		printf("%s ", tokens[i]);
-	} printf("\n");
+	handleTokens(tokens + 1022);
 }
 
 void handleCommands(char *commands) {
@@ -163,7 +190,7 @@ void handleCommands(char *commands) {
 			}
 
 			char **iter = parsedTokens + k - 1;
-			handleTokens(iter);
+			handleExpression(iter);
 			for(int j = 0; parsedTokens[j]; j++) parsedTokens[j] = 0;//Cleanup: just in case...
 		} else {
 			printf("Invalid parenthesis/brackets\n");
@@ -206,12 +233,6 @@ void recursion(int prev, char **parsedTokens, char *statements) {
 }
 */
 int executeCommands(char ** argv) {
-	//pid_t pid;
-	//int status;
-
-	//test -e test/file/path && echo “path exists”
-	//					- or -
-	//$ [ -e test/file/path ] && echo “path exists”
 	printf("%s\n", *argv);
 
 	if(argv[0][0] == '[' || strcmp(*argv, "test") == 0) {
@@ -224,16 +245,21 @@ int executeCommands(char ** argv) {
 		} else {
 			return checkForFile(argv[1]);//[ test/file/path ]????
 		}
+	} else if(strcmp(*argv, "exit") == 0) {
+		printf("End of Program\n");
+		exit(0);
 	}
 	/*
+	//pid_t pid;
+	//int status;
 	if((pid = fork()) < 0) {
 		perror("forking child process failed\n");
-		return 0;
+		exit(0);
 	}
 	if(pid == 0) {
 		if(execvp(*argv, argv) < 0) {
 			perror("exec failed\n");
-			return 0;
+			exit(0);
 		}
 	}
 	while(wait(&status) != pid)
@@ -286,7 +312,7 @@ int checkForFile(const char *const fileName, const char *const flags) {
 	if (stat(fileName, &sb) != 0) {
 		printf("file does not exist\n");
 		return 0;
-	} else if(strcmp(flags, "-f")) {
+	} else if(strcmp(flags, "-f") == 0) {
 		if((sb.st_mode & S_IFMT) == S_IFREG) {
 			printf("file exists and is regular\n");
 			return 1;
@@ -294,7 +320,7 @@ int checkForFile(const char *const fileName, const char *const flags) {
 			printf("file is not regular\n");
 			return 0;
 		}
-	} else if(strcmp(flags, "-d")) {
+	} else if(strcmp(flags, "-d") == 0) {
 		if((sb.st_mode & S_IFMT) == S_IFDIR) {
 			printf("file exists and is a directory\n");
 			return 1;
