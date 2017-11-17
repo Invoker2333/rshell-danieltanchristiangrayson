@@ -27,9 +27,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 int validBracketsRecursion(int &i, char *const str, char **&brackets);
 int validBrackets(char *const str, char **brackets);
 void changeBuffer(std::basic_string<char> &buffer);
-int handleTokens(char **tokenArray);
-void handleEdgeCase(char *str);
-int executeCommands(char ** argv);
+int handleTokens(char **tokenArray, int value = 1);
+int handleEdgeCase(char *str, int value = 1);
 int checkForFile(const char *const fileName, const char *const flags = "-e");
 char *handleExpression(char *const str, char **&brackets);
 int executeCommands(char ** argv);
@@ -151,23 +150,23 @@ void changeBuffer(std::basic_string<char> &buffer) {
 	buffer = buffer.substr(2);
 }
 
-int handleTokens(char **tokenArray) {	
+int handleTokens(char **tokenArray, int value) {	
 	if(*tokenArray) {
 		
 		if(strcmp(*tokenArray, "&&") == 0) {
 			*tokenArray = 0;
-			int ret = handleTokens(tokenArray - 1);
+			int ret = handleTokens(tokenArray - 1, value);
 			return ret;
 
 		} else if(strcmp(*tokenArray, "||") == 0) {
 			*tokenArray = 0;
-			return handleTokens(tokenArray - 1) ^ 1;
+			return handleTokens(tokenArray - 1, value) ^ 1;
 
 		} else {
-
-			while(*tokenArray && strcmp(*tokenArray, "&&") != 0 && strcmp(*tokenArray, "||") != 0)
+			while(*tokenArray && strcmp(*tokenArray, "&&") != 0 && strcmp(*tokenArray, "||") != 0) {
 				tokenArray--;
-			int ret = handleTokens(tokenArray);
+			}
+			int ret = handleTokens(tokenArray, value);
 			//Off by one error...
 			return ret? executeCommands(tokenArray + 1) : 0;
 
@@ -175,27 +174,19 @@ int handleTokens(char **tokenArray) {
 
 	}
 	
-	return 1;
+	return value;
 }
 
 //handles a strange edge case....
-void handleEdgeCase(char *str) {
-	for(int i = 0; str[i]; i++) {
-		if(str[i] == '(') {
-			str[i] = '\0';
-			char *tokens[32] = {0};
-			int j = 0;
-			for(char *tok = strtok(str, " "); tok; tok = strtok(0, " ")) {
-				tokens[j] = tok;
-			}
-			printf("\nEDGE CASE: \n");
-			for(j = 0; tokens[j]; j++) {
-				printf("%s ", tokens[j]);
-			}printf("\n");
-
-			str[i] = '(';
-		}
+int handleEdgeCase(char *str, int prev) {
+	char *tokens[32] = {0};	 int j = 1;
+	
+	for(char *tok = strtok(str, " "); tok; tok = strtok(0, " ")) {
+		tokens[j] = tok;
+		j++;
 	}
+	
+	return handleTokens(tokens + j - 1, prev);
 }
 
 char *handleExpression(char *const str, char **&brackets) {
@@ -220,8 +211,11 @@ char *handleExpression(char *const str, char **&brackets) {
 		i++;
 	}
 	
-	handleTokens(args + i - 1);
+	int prev = handleTokens(args + i - 1);
 	printf("LEFT OVER: %s\n", ret);
+	if(ret != 0)
+		handleEdgeCase(ret, prev);
+
 	return ret;
 }
 
