@@ -157,14 +157,11 @@ int handleTokens(char **tokenArray) {
 		if(strcmp(*tokenArray, "&&") == 0) {
 			*tokenArray = 0;
 			int ret = handleTokens(tokenArray - 1);
-			printf(" AND ");
 			return ret;
 
 		} else if(strcmp(*tokenArray, "||") == 0) {
 			*tokenArray = 0;
-			int ret = handleTokens(tokenArray - 1);
-			printf(" OR ");
-			return !ret;
+			return handleTokens(tokenArray - 1) ^ 1;
 
 		} else {
 
@@ -224,16 +221,12 @@ char *handleExpression(char *const str, char **&brackets) {
 	}
 	
 	handleTokens(args + i - 1);
-
-	return 0;
+	printf("LEFT OVER: %s\n", ret);
+	return ret;
 }
 
+//1 -> success, 0 -> failure
 int executeCommands(char ** argv) {
-	printf("EXECUTING COMMAND: ");
-	for(int i = 0; argv[i]; i++) {
-		printf("%s ", argv[i]);
-	} printf("\n");
-	
 	if(argv[0][0] == '[' || strcmp(*argv, "test") == 0) {
 		if(argv[1] == 0 || argv[1][0] == ']')
 			return 0;
@@ -246,7 +239,7 @@ int executeCommands(char ** argv) {
 		}
 	} else if(strcmp(*argv, "exit") == 0) {
 		printf("End of Program\n");
-		exit(0);
+		exit(1);
 	}
 
 	pid_t pid = fork();
