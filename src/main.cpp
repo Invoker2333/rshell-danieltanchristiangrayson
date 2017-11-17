@@ -16,10 +16,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
-//#include <sys/wait.h>
+#include <sys/wait.h>
 #include <iostream>
 #include <cstdlib>
-#include <vector>
+//#include <vector>
 #include <sys/stat.h>
 #include <time.h>
 #include <stdio.h>
@@ -120,19 +120,18 @@ void changeBuffer(std::basic_string<char> &buffer) {
 }
 
 int handleTokens(char **tokenArray) {
+	printf("%p", *tokenArray);
 	if(*tokenArray) {
 		if(strcmp(*tokenArray, "&&") == 0) {
 
 			*tokenArray = 0;
 			int ret = handleTokens(tokenArray - 1);
-			printf(" AND:%d ", ret);
 			return ret;
 
 		} else if(strcmp(*tokenArray, "||") == 0) {
 
 			*tokenArray = 0;
 			int ret = handleTokens(tokenArray - 1);
-			printf(" OR:%d ", ret);
 			return !ret;
 
 		} else {
@@ -141,12 +140,11 @@ int handleTokens(char **tokenArray) {
 				tokenArray--;
 
 			int ret = handleTokens(tokenArray);
-			printf("%s ", tokenArray[1]);
-			return ret;
+			return ret? executeCommands(tokenArray) : 0;
 
 		}
 	} else {
-		return 0;
+		return 1;
 	}
 }
 
@@ -170,24 +168,22 @@ void handleEdgeCase(char *str) {
 	}
 }
 
-char *handleExpression(char *str, char **&brackets) {
+char *handleExpression(char *str, char **const brackets, int &index) {
 	char *ret = 0;
 	char *args[512] = {0}; int i = 0;
 
-	while(*brackets != 0) {
-		if(**brackets == '(') {
-			ret = *brackets + 1;
-			**brackets = '\0';
-			brackets++;
-			ret = handleExpression(ret, brackets);
-		} else if(**brackets == ')') {
-			ret = *brackets + 1;
-			**brackets = '\0';
-			brackets++;
+	while(brackets != 0 && brackets[index] != 0) {
+		if(brackets[index][0] == '(') {
+			ret = *(brackets + index + 1);
+			brackets[index][0] = '\0';
+			index++;
+			ret = handleExpression(ret, brackets, index);
+			index++;
+		} else if(brackets[index][0] == ')') {
+			ret = *(brackets + index + 1);
+			brackets[index][0] = '\0';
+			index++;
 			break;
-		} else {
-			printf("%s???\n", *brackets);
-			//brackets++;
 		}
 	}
 
@@ -196,14 +192,7 @@ char *handleExpression(char *str, char **&brackets) {
 		i++;
 	}
 
-	//TODO: use the operator found in ret to get something done...
-	printf("\nFUNCTION: \n");
 	handleTokens(args + i - 1);
-	printf("LEFTOVERS: %s\n", ret);
-	//handleEdgeCase(ret);
-	//for(int i = 0; args[i]; i++) {
-	//	printf("%s ", args[i]);
-	//} printf("\n");
 
 	return ret;
 }
@@ -221,8 +210,8 @@ void handleCommands(char *commands) {
 
 	for(int i = 0; statements[i]; i++) {
 		if(validBrackets(statements[i], parsedParens)) {
-			char **pointer = parsedParens;
-			handleExpression(statements[i], pointer);
+			int index = 0;
+			handleExpression(statements[i], parsedParens, index);
 
 
 			for(int j = 0; parsedTokens[j]; j++)
@@ -232,44 +221,8 @@ void handleCommands(char *commands) {
 		}
 	}
 }
-/*
-void recursion(int prev, char **parsedTokens, char *statements) {
-	if(statements == 0) {
-		return;
-	} else if(strcmp(statements, "&&") == 0) {
-		if(prev) recursion(1, parsedTokens, strtok(0, " "));
-		else {
-			char *next = strtok(0, " ");
-			while(next && *next != '#' && strcmp(next, "&&") && strcmp(next, "||")) {
-				next = strtok(0, " ");
-			}
-			printf("recursion &&: %d\n", prev);
-			recursion(prev, parsedTokens, strtok(0, " "));
-		}
-	} else if(strcmp(statements, "||") == 0) {
-		if(!prev) recursion(1, parsedTokens, strtok(0, " "));
-		else {
-			char *next = strtok(0, " ");
-			while(next && *next != '#' && strcmp(next, "&&") && strcmp(next, "||")) {
-				next = strtok(0, " ");
-			}
-			printf("recursion ||: %d\n", prev);
-			recursion(prev, parsedTokens, strtok(0, " "));
-		}
-	} else {
-		int i; char *next = strtok(0, " "); *parsedTokens = statements;
-		for(i = 1; next && *next != '#' && strcmp(next, "&&") && strcmp(next, "||"); i++) {
-			parsedTokens[i] = next;
-			next = strtok(0, " ");
-		}
 
-		recursion(executeCommands(parsedTokens), parsedTokens + i + 1, next);
-	}
-}
-*/
 int executeCommands(char ** argv) {
-	printf("%s\n", *argv);
-
 	if(argv[0][0] == '[' || strcmp(*argv, "test") == 0) {
 		if(argv[1] == 0 || argv[1][0] == ']')
 			return 0;
@@ -284,9 +237,9 @@ int executeCommands(char ** argv) {
 		printf("End of Program\n");
 		exit(0);
 	}
-	/*
-	//pid_t pid;
-	//int status;
+
+	pid_t pid;
+	int status;
 	if((pid = fork()) < 0) {
 		perror("forking child process failed\n");
 		exit(0);
@@ -298,7 +251,7 @@ int executeCommands(char ** argv) {
 		}
 	}
 	while(wait(&status) != pid)
-		;*/
+		;
 	return 0;
 }
 
