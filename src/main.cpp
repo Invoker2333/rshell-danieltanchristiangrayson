@@ -50,7 +50,7 @@ int main(int , char *[]) {
 
 		char *commands = (char *)malloc(sizeof(char) * (int)(buffer.length() + 1));
 		strcpy(commands, buffer.c_str());
-		
+		printf("%s\n", commands);
 		int i = 0;
 		for(char *tok = strtok(commands, ";"); tok; tok = strtok(0, ";")) {
 			statements[i] = tok;
@@ -124,7 +124,7 @@ void changeBuffer(std::basic_string<char> &buffer) {
 
 	for(std::size_t i = 2; i < buffer.length(); i++) {
 		if(buffer[i] == '#') {
-			buffer = buffer.substr(i);//cut off anything after '#'
+			buffer = buffer.substr(0, i);//cut off anything after '#'
 			return;
 		} else if(buffer[i] == '&' && buffer[i - 1] == '&' && buffer[i - 2] != ' ') {
 			buffer = buffer.substr(0, i - 1) + " && " + buffer.substr(i + 1);
