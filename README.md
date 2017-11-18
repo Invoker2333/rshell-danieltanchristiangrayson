@@ -4,7 +4,12 @@ Contact Info: cgray009@ucr.edu, dtan004@ucr.edu
 Overview:
 This program allows users to type in Linux shell script commands. You can chain together
 multiple commands through the '&&', '||', and ';'. Anything after the '#' is treated
-as a comment and therefore not executed.
+as a comment and therefore not executed. Typing in "test -e test/file/path" or "[-e test/file/path]"
+can be used to check if a directory exists or not, determine whether it is a regular file, and/or
+determine whether it is a directory. If there is no flag, -e functionality is used by default. Parentheses
+operators can be used to change the order in which commands are executed. Mutliple parentheses/nested
+parentheses can be used to fine-tune the order of execution. If there is an uneven amount of parentheses,
+the program can effectively errors in parentheses.
 
 Files:
 -Readme.md
@@ -36,4 +41,6 @@ Bug Report:
 -recursion bug where it would end up in an infinite loop (fixed)
 -shell scripting bug where it would continuously call an infinite loop (fixed)
 -shell script tests fail to call the program correctly (fixed)
+-precendence bugs
+-shell script tests have problems (hopefully caught most of them.)
 
