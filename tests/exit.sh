@@ -1,5 +1,6 @@
 #!/bin/bash
-echo "exit" | ./a.out
-echo "ls -a; git status; ifconfig; git; exit" | ./a.out
-echo "git && ls -a; ifconfig || echo Hello Everybody!!!; exit" | ./a.out
-echo "ls && echo "Hello World!!!" && git status;" | ./a.out
+echo "exit" | bin/rshell
+echo "ls -a; git status; ifconfig; git; exit" | bin/rshell
+echo "git && ls -a; ifconfig || echo Hello Everybody!!!; exit" | bin/rshell
+echo "ls && echo "Hello World!!!" && git status;" | bin/rshell
+echo "(echo "Hello World" && nonCommand) || (exit && echo A)" | bin/rshell

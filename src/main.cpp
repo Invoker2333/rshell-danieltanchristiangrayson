@@ -124,7 +124,7 @@ void changeBuffer(std::basic_string<char> &buffer) {
 
 	for(std::size_t i = 2; i < buffer.length(); i++) {
 		if(buffer[i] == '#') {
-			buffer = buffer.substr(2, i);//cut off anything after '#'
+			buffer = buffer.substr(i);//cut off anything after '#'
 			return;
 		} else if(buffer[i] == '&' && buffer[i - 1] == '&' && buffer[i - 2] != ' ') {
 			buffer = buffer.substr(0, i - 1) + " && " + buffer.substr(i + 1);
@@ -256,26 +256,26 @@ int checkForFile(const char *const fileName, const char *const flags) {
 	// -d => checks if file directory exists & is directory
 	struct stat sb;
 	if (stat(fileName, &sb) != 0) {
-		printf("file does not exist\n");
+		printf("(False)\n");
 		return 0;
 	} else if(strcmp(flags, "-f") == 0) {
 		if((sb.st_mode & S_IFMT) == S_IFREG) {
-			printf("file exists and is regular\n");
+			printf("(True)\n");
 			return 1;
 		} else {
-			printf("file is not regular\n");
+			printf("(False)\n");
 			return 0;
 		}
 	} else if(strcmp(flags, "-d") == 0) {
 		if((sb.st_mode & S_IFMT) == S_IFDIR) {
-			printf("file exists and is a directory\n");
+			printf("(True)\n");
 			return 1;
 		} else {
-			printf("file is not a directory\n");
+			printf("(False)\n");
 			return 0;
 		}
 	} else {
-		printf("file exists\n");
+		printf("(True)\n");
 		return 1;
 	}
 	
