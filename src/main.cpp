@@ -32,6 +32,8 @@ int handleEdgeCase(char *str, int value = 1);
 int checkForFile(const char *const fileName, const char *const flags = "-e");
 char *handleExpression(char *const str, char **&brackets);
 int executeCommands(char ** argv);
+int inputRedirection(char **argv);
+
 
 int main(int , char *[]) {
 	std::basic_string<char> buffer;
@@ -79,6 +81,9 @@ int main(int , char *[]) {
 }
 
 int validBracketsRecursion(int &i, char *const str, char **&brackets) {
+	//checks whether the brackets are valid brackets
+	//
+
 	while(1)
 		switch(str[i]) {
 
@@ -114,6 +119,7 @@ int validBracketsRecursion(int &i, char *const str, char **&brackets) {
 }
 
 int validBrackets(char *const str, char **brackets) {
+	//wrapper around the '(' and ')' to provide an interface for using the function...
 	int i = 0; int ret = validBracketsRecursion(i, str, brackets);
 	return ret && ret != int(')');
 }
@@ -219,7 +225,11 @@ char *handleExpression(char *const str, char **&brackets) {
 
 //1 -> success, 0 -> failure
 int executeCommands(char ** argv) {
-	if(argv[0][0] == '[' || strcmp(*argv, "test") == 0) {
+	int ret = inputRedirection(argv);
+	
+	if(ret != -1)
+		return ret;
+	else if(argv[0][0] == '[' || strcmp(*argv, "test") == 0) {
 		if(argv[1] == 0 || argv[1][0] == ']')
 			return 0;
 		else if(argv[2] == 0)
@@ -281,3 +291,53 @@ int checkForFile(const char *const fileName, const char *const flags) {
 	
 	return 1;
 }
+
+int inputRedirection(char **argv) {
+	for(int i = 0; argv[i]; i++) {
+		
+		if(strcmp(argv[i], ">>") == 0) {
+			argv[i][0] = argv[i][1] = 0;
+			argv[i] = 0;
+			printf("OUTPUT_REDIRECTION_APPEND, %p\n", argv[i]);
+			freopen(argv[i + 1], "a", stdout);
+			
+			int ret = executeCommands(argv);
+			fclose(stdout);
+			return ret;
+
+
+		} else if(strcmp(argv[i], ">") == 0) {
+			argv[i][0] = 0;
+			argv[i] = 0;
+			printf("OUTPUT_REDIRECTION_OVERWRITE, %p\n", argv[i]);
+			
+			freopen(argv[i + 1], "w", stdout);
+
+
+			int ret = executeCommands(argv);
+
+			fclose(stdout);
+			return ret;
+
+		} else if(strcmp(argv[i], "<") == 0) {
+			argv[i][0] = 0;
+			argv[i] = 0;
+			printf("INPUT_REDIRECTION, %p\n", argv[i]);
+			
+			freopen(argv[i + 1], "r", stdin);
+			
+			int ret = executeCommands(argv);
+			fclose(stdin);
+			return ret;
+		}
+
+
+	}
+
+	return -1;
+}
+
+
+
+
+
