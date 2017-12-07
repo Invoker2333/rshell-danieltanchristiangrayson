@@ -322,6 +322,8 @@ int inputRedirection(char **argv) {
 			dup2(savedstdin, 0);//restores stdin
 			return ret;
 		} else if(strcmp(argv[i], "|") == 0) {
+			//piping...
+			
 			argv[i][0] = 0;
 			argv[i] = 0;
 			
@@ -335,13 +337,16 @@ int inputRedirection(char **argv) {
 
 			if((childpid = fork()) == -1) {
 				perror("fork error");
-				exit(1);
+				exit(0);
 			} else if(childpid == 0) {
+				//child process....
 				close(fd[0]);
 				write(fd[1], string, (strlen(string) + 1));
-				exit(0);
+				exit(1);
 
 			} else {
+				//parent process....
+
 				close(fd[1]);
 				nbytes = read(fd[0], readbuffer, sizeof(readbuffer));
 				printf("Received string: %s, %d\n", readbuffer, nbytes);
