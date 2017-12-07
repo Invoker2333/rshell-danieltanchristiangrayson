@@ -52,7 +52,6 @@ int main(int , char *[]) {
 
 		char *commands = (char *)malloc(sizeof(char) * (int)(buffer.length() + 1));
 		strcpy(commands, buffer.c_str());
-		printf("%s\n", commands);
 		int i = 0;
 		for(char *tok = strtok(commands, ";"); tok; tok = strtok(0, ";")) {
 			statements[i] = tok;
@@ -322,6 +321,32 @@ int inputRedirection(char **argv) {
 			int ret = executeCommands(argv);
 			dup2(savedstdin, 0);//restores stdin
 			return ret;
+		} else if(strcmp(argv[i], "|") == 0) {
+			argv[i][0] = 0;
+			argv[i] = 0;
+			
+			int fd[2]; int nbytes;
+			pid_t childpid;
+			char *string = argv[i + 1];
+			char readbuffer[1000];
+
+			pipe(fd);
+
+
+			if((childpid = fork()) == -1) {
+				perror("fork error");
+				exit(1);
+			} else if(childpid == 0) {
+				close(fd[0]);
+				write(fd[1], string, (strlen(string) + 1));
+				exit(0);
+
+			} else {
+				close(fd[1]);
+				nbytes = read(fd[0], readbuffer, sizeof(readbuffer));
+				printf("Received string: %s, %d\n", readbuffer, nbytes);
+				return 1;//true????
+			}
 		}
 
 
