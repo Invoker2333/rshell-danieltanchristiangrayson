@@ -298,36 +298,29 @@ int inputRedirection(char **argv) {
 		if(strcmp(argv[i], ">>") == 0) {
 			argv[i][0] = argv[i][1] = 0;
 			argv[i] = 0;
-			printf("OUTPUT_REDIRECTION_APPEND, %p\n", argv[i]);
-			freopen(argv[i + 1], "a", stdout);
-			
+			int savedstdout = dup(1);//save the stdout
+			freopen(argv[i + 1], "a", stdout);//redirect stdout
 			int ret = executeCommands(argv);
-			fclose(stdout);
+			dup2(savedstdout, 1);//restores stdout
 			return ret;
 
 
 		} else if(strcmp(argv[i], ">") == 0) {
 			argv[i][0] = 0;
 			argv[i] = 0;
-			printf("OUTPUT_REDIRECTION_OVERWRITE, %p\n", argv[i]);
-			
-			freopen(argv[i + 1], "w", stdout);
-
-
+			int savedstdout = dup(1);//saves the stdout
+			freopen(argv[i + 1], "w", stdout);//redirect stdout
 			int ret = executeCommands(argv);
-
-			fclose(stdout);
+			dup2(savedstdout, 1);//restores stdout
 			return ret;
 
 		} else if(strcmp(argv[i], "<") == 0) {
 			argv[i][0] = 0;
 			argv[i] = 0;
-			printf("INPUT_REDIRECTION, %p\n", argv[i]);
-			
-			freopen(argv[i + 1], "r", stdin);
-			
+			int savedstdin = dup(0);//saves stdin
+			freopen(argv[i + 1], "r", stdin);//redirect stdin
 			int ret = executeCommands(argv);
-			fclose(stdin);
+			dup2(savedstdin, 0);//restores stdin
 			return ret;
 		}
 
