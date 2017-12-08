@@ -48,6 +48,7 @@ int main(int , char *[]) {
 			return 0;
 		}
 
+		//change the buffer, so ls -a&&ls -> ls -a && ls
 		changeBuffer(buffer);
 
 		char *commands = (char *)malloc(sizeof(char) * (int)(buffer.length() + 1));
@@ -183,6 +184,8 @@ int handleTokens(char **tokenArray, int value) {
 
 //handles a strange edge case....
 int handleEdgeCase(char *str, int prev) {
+	//Attempt to cover some buggy behavior....
+
 	char *tokens[32] = {0};	 int j = 1;
 	
 	for(char *tok = strtok(str, " "); tok; tok = strtok(0, " ")) {
@@ -194,6 +197,9 @@ int handleEdgeCase(char *str, int prev) {
 }
 
 char *handleExpression(char *const str, char **&brackets) {
+	//we first handle parenthesis expressions, then handle the stuff before the parenthesis
+	//then we handle stuff after the parenthesis
+
 	char *ret = 0; char *args[64] = {0}; int i = 1;
 
 	while(*brackets != 0) {
@@ -224,10 +230,13 @@ char *handleExpression(char *const str, char **&brackets) {
 
 //1 -> success, 0 -> failure
 int executeCommands(char ** argv) {
+	//inputRedirection handling and checking
 	int ret = inputRedirection(argv);
 	
 	if(ret != -1)
 		return ret;
+
+	//check for file exists and check flags
 	else if(argv[0][0] == '[' || strcmp(*argv, "test") == 0) {
 		if(argv[1] == 0 || argv[1][0] == ']')
 			return 0;
@@ -243,6 +252,7 @@ int executeCommands(char ** argv) {
 		exit(1);
 	}
 
+	//execvp and fork and do "ls", "ifconfig", etc.
 	pid_t pid = fork();
 	int status;
 	if(pid < 0) {
@@ -293,7 +303,8 @@ int checkForFile(const char *const fileName, const char *const flags) {
 
 int inputRedirection(char **argv) {
 	for(int i = 0; argv[i]; i++) {
-		
+
+		// handle >> operators append
 		if(strcmp(argv[i], ">>") == 0) {
 			argv[i][0] = argv[i][1] = 0;
 			argv[i] = 0;
@@ -303,7 +314,7 @@ int inputRedirection(char **argv) {
 			dup2(savedstdout, 1);//restores stdout
 			return ret;
 
-
+		// handle > operators write
 		} else if(strcmp(argv[i], ">") == 0) {
 			argv[i][0] = 0;
 			argv[i] = 0;
@@ -312,7 +323,8 @@ int inputRedirection(char **argv) {
 			int ret = executeCommands(argv);
 			dup2(savedstdout, 1);//restores stdout
 			return ret;
-
+		
+		// handle < operators read
 		} else if(strcmp(argv[i], "<") == 0) {
 			argv[i][0] = 0;
 			argv[i] = 0;
@@ -321,6 +333,8 @@ int inputRedirection(char **argv) {
 			int ret = executeCommands(argv);
 			dup2(savedstdin, 0);//restores stdin
 			return ret;
+
+		// handle | operators pipe
 		} else if(strcmp(argv[i], "|") == 0) {
 			//piping...
 			
@@ -334,7 +348,7 @@ int inputRedirection(char **argv) {
 
 			pipe(fd);
 
-
+			//piping failure...
 			if((childpid = fork()) == -1) {
 				perror("fork error");
 				exit(0);
@@ -359,7 +373,6 @@ int inputRedirection(char **argv) {
 
 	return -1;
 }
-
 
 
 
