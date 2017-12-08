@@ -341,7 +341,7 @@ int inputRedirection(char **argv) {
 			argv[i][0] = 0;
 			argv[i] = 0;
 			
-			int fd[2]; int nbytes;
+			int fd[2];
 			pid_t childpid;
 			char *string = argv[i + 1];
 			char readbuffer[1000];
@@ -362,8 +362,8 @@ int inputRedirection(char **argv) {
 				//parent process....
 
 				close(fd[1]);
-				nbytes = read(fd[0], readbuffer, sizeof(readbuffer));
-				printf("Received string: %s, %d\n", readbuffer, nbytes);
+				read(fd[0], readbuffer, sizeof(readbuffer));
+				printf("%s\n", readbuffer);
 				return 1;//true????
 			}
 		}
